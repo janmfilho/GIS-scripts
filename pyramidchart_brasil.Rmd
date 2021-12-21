@@ -1,0 +1,98 @@
+---
+title: "Population pyramid chart with geom_bar()"
+author: "José Augusto Mendonça"
+date: "17/11/2021"
+output: html_document
+---
+
+# 0. Set up R
+
+```{r setup, include=FALSE}
+
+# Clean R
+
+knitr::opts_chunk$set(echo = TRUE)
+
+# Clear workspace
+
+rm(list = ls()) 
+
+# Load packages for spatial analysis
+
+library(ggplot2)
+library(tidyverse)
+library(cowplot)
+
+```
+
+# 1. Load data
+
+```{r read_data}
+
+# Load URL link
+
+url <- 'https://www.populationpyramid.net/api/pp/76/2019/?csv=true'
+
+# Turn into data file
+
+data <- read.csv(url)
+
+# Check first observations
+
+head(data)
+
+names(data)
+
+```
+
+# 2. Manipulate data
+
+```{r manipulate_data}
+
+data <- data %>%
+  pivot_longer(names_to = 'Gender', values_to = 'Population', cols = 2:3) %>%
+  mutate(PopPerc=case_when(Gender=='M'~round(Population/sum(Population)*100,2),
+                           TRUE~-round(Population/sum(Population)*100,2)),
+         signal=case_when(Gender=='M'~1,
+                          TRUE~-1))
+# Let´s have a quick look
+
+head(data)
+
+# Let´s see the distribution of ages
+
+levels(data$Age)
+
+# Transform it into a factor - reorder by order of appearance
+
+data$Age <- factor(data$Age,levels=unique(data$Age),ordered=TRUE)
+
+```
+
+# 4. Plotting
+
+```{r plotting}
+
+# PLot with ggplot2
+
+ggplot(data)+
+  geom_bar(aes(x=Age,y=PopPerc,fill=Gender),stat='identity')+
+  geom_text(aes(x=Age,y=PopPerc+signal*.3,label=abs(PopPerc)))+
+  coord_flip()+
+  scale_fill_manual(name='',values=c('darkred','steelblue'))+
+  scale_y_continuous(breaks=seq(-10,10,1),
+                     labels=function(x){paste(abs(x),'%')})+
+  labs(x='',y='Population (%)',
+       title='Population Pyramid of Brazil',
+       subtitle=paste('Total resident population in 2019:', format(sum(data$Population),big.mark='.')),
+       caption='Source: PopulationPyramid.net')+
+  cowplot::theme_cowplot()+
+  theme(axis.text.x=element_text(vjust=.5),
+        panel.grid.major.y = element_line(color='lightgray',linetype='dashed'),
+        legend.position = 'top',
+        legend.justification = 'center')
+
+```
+
+
+
