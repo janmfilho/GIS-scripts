@@ -24,9 +24,9 @@ library(dplyr)
 
 Shapefiles must be combined with other type of files in its folder. 
 
-# Let¥s set the working directory
+# Let¬¥s set the working directory
 
-setwd("C:/Users/jose_/OneDrive/¡rea de Trabalho/Spatial Test")
+setwd("C:/Users/jose_/OneDrive/√Årea de Trabalho/Spatial Test")
 
 # Load Municipality shapefiles
 
@@ -78,20 +78,22 @@ ggplot()+
 ggplot()+
   geom_sf(aes(fill=DensClass), color = 'transparent', data=br_mun)+
   geom_sf(fill= 'transparent', color = 'white', data=br_est)+
-  scale_fill_viridis_d(name='Inhab/km≤')+
+  scale_fill_viridis_d(name='Inhab/km¬≤')+
   labs(title="Brazil's demographics",
        subtitle='Population density',
-       caption=c('Source: IBGE - Censo demogr·fico, 2010'))
+       caption=c('Source: IBGE - Censo demogr√°fico, 2010'))
 
 # Setting a clean theme and legend position to the bottom
 
 ggplot()+
   geom_sf(aes(fill=DensClass), color = 'transparent', data=br_mun)+
   geom_sf(fill= 'transparent', color = 'white', data=br_est)+
-  scale_fill_viridis_d(name='Inhab/km≤')+
+  scale_fill_viridis_d(name='Inhab/km¬≤')+
   labs(title="Brazil's demographics",
        subtitle='Population density',
-       caption=c('Source: IBGE - Censo demogr·fico, 2010'))+
+       caption=c('Source: IBGE - Censo demogr√°fico, 2010'))+
   theme_void()+
   theme(title=element_text(face='bold'),
         legend.position = 'bottom')
+
+# End
