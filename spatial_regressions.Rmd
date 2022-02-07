@@ -239,7 +239,7 @@ ggplot(map_and_data) +
 
 # Allow API key
 
-register_google(key = "AIzaSyDAWoRNRM2PS3bWil9ax1zzxYGP_R6PBBI")
+register_google(key = "")
 
 # Create Static background layer for the city of Amsterdam 
 
