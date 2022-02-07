@@ -1,0 +1,288 @@
+---
+title: "Spatial Analysis"
+author: "José Augusto Mendonça"
+date: "12/09/2021"
+output: html_document
+---
+
+# 0. Set up R
+
+```{r setup, include=FALSE}
+
+# Clean R
+
+knitr::opts_chunk$set(echo = TRUE)
+
+# Clear workspace
+
+rm(list = ls()) 
+
+# Load packages for spatial analysis
+
+library(sp)
+library(rgdal)
+library(rgeos)
+library(ggmap)                 
+library(leaflet)
+library(spatstat)
+library(gstat)
+library(maptools)
+library(ggplot2)
+library(sf)
+library(dplyr)
+
+# Numbers do not display as scientific notation 
+
+options(scipen = 999)
+
+```
+
+# 1. Read data
+
+```{r read_data}
+
+# Load local R Dataframe
+
+amsterdam <- read.csv('dfgeolocation.csv')
+
+# Check the structure of the Dataframe
+
+class(amsterdam)
+
+# Check the structure of the Dataframe variables 
+
+str(amsterdam)
+
+# Check for missing values (NA´s)
+
+summary(amsterdam)
+
+```
+
+# 2. Mutate data
+
+```{r mutate_data, echo=FALSE}
+
+# Remove missing values from Dataframe
+
+# amsterdam <- filter(amsterdam,lat != "NA")
+
+amsterdam <- amsterdam[!is.na(amsterdam$lat), ] 
+
+# Mutate time variable as date format
+
+amsterdam$registrationdate <- as.Date(amsterdam$registrationdate)
+ 
+```
+
+# 3. Spatial Points Dataframe
+
+We need to convert *amsterdam* local Dataframe into *SpatialPointsDataFrame* using function from *sp* package
+
+proj4string is the Coordinate Reference System
+
+By running the CRS function, we discarded unknown data based on WGS84 reference
+
+```{r spatial_points}
+
+# Set the coordinates object - Facilitate R to recognize that these two variables are coordinates
+
+# Before R used to recognize them as numbers
+
+coords <- SpatialPoints(amsterdam[, c("lon", "lat")])
+
+# Create spatial Dataframe  
+
+amsterdam_spatial_df <- SpatialPointsDataFrame(coords, amsterdam) 
+
+# Define our type of coordinates reference system
+
+proj4string(amsterdam_spatial_df) <- CRS("+proj=longlat +ellps=WGS84") 
+ 
+```
+
+# 4. Have a quick look on what we are doing
+
+The foundation class is the *Spatial* class
+
+```{r quicklook}
+
+# See the possible classes for Class Spatial
+
+getClass("Spatial")
+
+# Check structure of new Dataframe (We converted from local to Spatial Dataframe)
+
+class(amsterdam_spatial_df) 
+
+# Plot the points in a plane
+
+plot(amsterdam_spatial_df)
+ 
+```
+
+# 5. Save Spatial data
+
+```{r savespatialdata}
+
+# Function saveRDS - Maintain the Spatial integrity
+
+saveRDS(amsterdam_spatial_df, "amsterdam_spatial_df.rds")
+
+```
+
+# 6. Load polygon shapefiles (geographical layer)
+
+```{r load_polygon}
+
+# Read shape files (First folder, then file)
+
+# Country level
+
+nl_shp <- readOGR(dsn = "C:/Users/jose_/OneDrive/Área de Trabalho/Spatial Test/NLD_adm", "NLD_adm0")
+
+# Region level
+
+nl1_shp <- readOGR(dsn = "C:/Users/jose_/OneDrive/Área de Trabalho/Spatial Test/NLD_adm", "NLD_adm1")
+
+# Municipality level
+
+nl2_shp <- readOGR(dsn = "C:/Users/jose_/OneDrive/Área de Trabalho/Spatial Test/NLD_adm", "NLD_adm2")
+
+# Check the boundering plots
+
+plot(nl_shp)
+plot(nl1_shp)
+plot(nl2_shp)
+ 
+```
+
+# 7. Spatial Descriptive Statistics
+
+```{r descriptive}
+
+# Check the bounding area of a spatial object
+
+bbox(amsterdam_spatial_df)
+
+# Explore the projection (coordination) system of any spatial object
+
+proj4string(amsterdam_spatial_df)
+
+# Have a look into the first observations
+
+head(amsterdam_spatial_df@coords, 5)
+ 
+```
+
+# 8. Data visualization
+
+Let's add housing data onto the map. We can use the argument, 'add=TRUE' to add another layer onto the plot. 
+
+```{r visualization}
+
+# Plot and add layers
+
+plot(nl2_shp, col = "grey", axes = TRUE)
+plot(amsterdam_spatial_df, pch = 21, bg = "red", cex = .5, add=TRUE)
+title("Housings solds in the NL")
+legend("topleft", title = "Legend", legend = "Sold houses locations", pch = 21, pt.bg = "red", bty = "n")
+ 
+```
+
+# 9. Data visualization using ggplot2
+
+ggplot2 works with data frames and not objects of class **Spatial**. So we have to convert them using 'fortify()'
+
+```{r ggplot2}
+
+# Convert spatial objects into dataframes 
+
+amsterdam_df <- data.frame(amsterdam_spatial_df)
+nl2_shp_df <- fortify(nl2_shp)
+
+# Set map object
+
+p <- ggplot() +
+  geom_polygon(aes(x=long, y = lat, group=group), data = nl2_shp_df, colour = "black", fill = NA) +
+  geom_point(data = amsterdam_df, aes(x = lon, y = lat), color = ("red"), size=1) +
+  coord_equal() + labs(title = "dale") + xlab("Longitude") + ylab("Latitude")
+
+# Print map object
+
+p
+
+```
+
+# 10. Other type of ggplot Plot
+
+```{r gglplot4}
+
+# Define a combined object by a common variable (In this case, latitude)
+
+map_and_data <- inner_join(amsterdam_df, nl2_shp_df)
+
+# Plot combined object
+
+ggplot(map_and_data) +
+  geom_sf(aes(fill= obj_hid_TRANSACTIEPRIJS)) +
+  scale_fill_gradient(low = "#56B1F7", high = "#132B43")
+
+
+
+
+```
+
+# 11. Data visualization using ggmap
+
+```{r ggmap}
+
+# Allow API key
+
+register_google(key = "AIzaSyDAWoRNRM2PS3bWil9ax1zzxYGP_R6PBBI")
+
+# Create Static background layer for the city of Amsterdam 
+
+map_ams <- get_map(location = "amsterdam", source = "osm", zoom = 14)
+
+# Use ggmap command to make the plot
+
+amsterdamMap <- ggmap(map_ams, extent = "device", legend = "topleft")
+amsterdamMap
+
+# Plot the shapefiles
+
+amsterdamMap2 <- amsterdamMap +
+  geom_polygon(aex(x = long, y = lat, group = group), data = nl2_shp_df, colour = "black", fill = NA)
+
+amsterdamMap2
+ 
+```
+
+# 12. Leaflet package (Interactive map)
+
+``` {r leaflet}
+
+
+
+
+
+
+
+``` 
+
+# 13. Tmap package
+
+``` {r tmap}
+
+
+
+
+
+
+
+```
+
+
+
+
