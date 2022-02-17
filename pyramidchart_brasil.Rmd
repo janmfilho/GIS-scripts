@@ -92,6 +92,6 @@ ggplot(data)+
         legend.position = 'top',
         legend.justification = 'center')
 ```
-# End
+## End
 
 
