@@ -40,7 +40,6 @@ data <- read.csv(url)
 # Check first observations
 
 head(data)
-
 names(data)
 
 ```
@@ -93,5 +92,3 @@ ggplot(data)+
         legend.justification = 'center')
 ```
 ## End
-
-
